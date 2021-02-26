@@ -1,0 +1,35 @@
+Package: psSLP
+Title: Pre-Smoothed Simulated Linear Pooling of Forecasts
+Version: 1.0.0.0000
+Authors@R: 
+    person(given = "Luke",
+           family = "Mullany",
+           role = c("aut", "cre"),
+           email = "Luke.Mullany@jhuapl.edu")
+Description: This package implements approaches to combining modeling forecast sets in the 
+    scenario when only an estimate of the quantile function of the original forecast set
+    is available. There are two basic approaches implemented: (1) a simple vincentization approach
+    whereby the quantile functions are combined simply by taking the mean (or median) across
+    the sets at each quantile level; (2) a simulated linear pooling approach whereby the
+    a discrete set of quantile function values are used to estimate the full quantile function
+    (using a generalized additive model with penalized cubic splines), and a distribution of
+    'original' forecasts are back-simulated. These distributions are then combined linearl across the 
+    forecasts sets, creating a multi-modal distribution, and a new quantile function is estimated
+    from this combined distribution. The package also allows for pre-smoothing of the invidual 
+    quantile functions before combining. 
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    foreach,
+    doParallel,
+    data.table,
+    stringr,
+    parallel,
+    mgcv
+Depends: 
+    R (>= 2.10)
+Suggests: knitr, rmarkdown
+VignetteBuilder: knitr

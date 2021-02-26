@@ -1,0 +1,25 @@
+Package: covid19hosp
+Title: Estimating COVID-19 Hospitalization Ensemble(s)
+Version: 1.0.0.0000
+Authors@R: 
+    person(given = "Luke",
+           family = "Mullany",
+           role = c("aut", "cre"),
+           email = "Luke.Mullany@jhuapl.edu")
+Description: This package provides utility functions to allow for the estimation of COVID-19 hospitalization 
+    ensembles. The utilities are designed to be used only with data that are collected and processed by the
+    COVID-19 Hub (https://github.com/reichlab/covid19-forecast-hub). The functions fall into three main 
+    categories: (1) processing [help load, prepare, process hospitalization quantile functions],
+    (2) plotting, (3) empirical data pull functions, and (4) coverage.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    data.table,
+    stringr,
+    jsonlite,
+    ggplot2
+Depends: 
+    R (>= 2.10)
