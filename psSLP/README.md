@@ -3,7 +3,7 @@
 ------------------------------------------------------------------------
 
 ## Installation:
-devtools::install_github("lmullany/psSLP")
+devtools::install_github("lmullany/JHUAPL-SLPHospEns/psSLP")
 
 ------------------------------------------------------------------------                         
 ![](imgs/background_info.png)
