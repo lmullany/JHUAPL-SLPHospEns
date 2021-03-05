@@ -20,8 +20,8 @@ data table of coverage predictions
 \description{
 This function takes a merged data frame, and calculates coverage stats by any column; the format
 of the merged data frame is important. It must have both hospital and predicted values. The
-predicted values must be by quantile, with names like \code{0.5}, etc.. The function will look for
-these names, and expects to find them
+predicted values must be by quantile, with names like \code{0.5}, etc.. The function will look for 23
+of these names, and expects to find them
 }
 \examples{
 get_coverage_stats(dat=dat)

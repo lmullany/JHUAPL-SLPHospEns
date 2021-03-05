@@ -31,8 +31,8 @@ coverage_predictions <- function(pred_min, pred_max, empir_obs, inclusive=T) {
 #'
 #' This function takes a merged data frame, and calculates coverage stats by any column; the format
 #' of the merged data frame is important. It must have both hospital and predicted values. The
-#' predicted values must be by quantile, with names like `0.5`, etc.. The function will look for
-#' these names, and expects to find them
+#' predicted values must be by quantile, with names like `0.5`, etc.. The function will look for 23
+#' of these names, and expects to find them
 #' @param dat This is the data frame of merged hospitalization predictions and empirical data
 #' @param bycols (default is NULL) a string vector of columns to group by
 #' @param qnames (default is NULL) a string vector of the quantile column names; when NULL, the function will look for

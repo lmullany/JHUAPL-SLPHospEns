@@ -17,7 +17,7 @@ Description: This package implements approaches to combining modeling forecast s
     forecasts sets, creating a multi-modal distribution, and a new quantile function is estimated
     from this combined distribution. The package also allows for pre-smoothing of the invidual 
     quantile functions before combining. 
-License: GPL-3
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
