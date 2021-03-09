@@ -37,7 +37,7 @@ generate_slp_predictions <- function(x,
                                   parallel = c("auto","on","off"),
                                   threads = NULL,
                                   verbose=T,
-                                  gam_model_configuration=NULL) {
+                                  gam_model_configuration=list(family="gaussian")) {
 
   parallel = match.arg(parallel)
 
@@ -55,8 +55,15 @@ generate_slp_predictions <- function(x,
 
   #if byvars is null, this should be very quick (one model only)
   if(is.null(byvars)) {
-    gam_model <- mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=input_df, model=F)
+    gam_model <- suppressWarnings(
+      mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=input_df, model=F, family=gam_model_configuration$family)
+    )
     predictions = sim_model_output(gam_model,numpredictions = draw_size)
+    if(gam_model_configuration$family == "poisson") {
+      print("poisson_predictions!")
+      predictions = exp(predictions)
+    }
+
     return(data.table::data.table("predictions"=predictions))
   }
 
@@ -84,8 +91,13 @@ generate_slp_predictions <- function(x,
       `%par_type%` <- `%do%`
     }
     result <- foreach::foreach(i=split(input_df,by=byvars),.combine = rbind, .verbose=F,.packages="data.table",.inorder = F) %par_type% {
-        gam_model <- mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=i, model=F)
+        gam_model <- suppressWarnings(
+          mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=i, model=F, family=gam_model_configuration$family)
+        )
         predictions = sim_model_output(gam_model,draw_size)
+        if(gam_model_configuration$family == "poisson") {
+          predictions = exp(predictions)
+        }
         keyv <- lapply(byvars,function(x) unique(i[[x]]))
         res = data.table::data.table(predictions=predictions)
         for(kv in seq(length(keyv))) data.table::set(x=res,j = byvars[kv],value = keyv[kv])

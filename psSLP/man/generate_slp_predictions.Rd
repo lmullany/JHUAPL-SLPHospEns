@@ -13,7 +13,7 @@ generate_slp_predictions(
   parallel = c("auto", "on", "off"),
   threads = NULL,
   verbose = T,
-  gam_model_configuration = NULL
+  gam_model_configuration = list(family = "gaussian")
 )
 }
 \arguments{

@@ -119,7 +119,8 @@ We'll start by calling this function with the default parameters, along with spe
 simulated_1 = generate_slp_predictions(
   x = forecast_1,
   qp_var = "qp",
-  p_var = "p")
+  p_var = "p",
+  gam_model_configuration = list(family="poisson"))
 
 # plot a histogram of these
 ggplot(simulated_1,aes(x=predictions,stat="identity")) + 
@@ -214,7 +215,13 @@ We can simulate the underlying distribution of each model, using `generate_slp_p
 ```{r}
 
 # Generate the distributions
-sim_distributions <- generate_slp_predictions(multiple_models,qp_var="outcomes",p_var="quantile",byvar="model")
+sim_distributions <- generate_slp_predictions(
+  x = multiple_models,
+  qp_var="outcomes",
+  p_var="quantile",
+  gam_model_configuration = list(family="poisson"), 
+  byvar="model"
+)
 
 # Now, lets look at the result
 sim_distributions[,.N,by=model]
