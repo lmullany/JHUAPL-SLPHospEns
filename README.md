@@ -21,3 +21,5 @@ This repo provides two R packages; see individual `README.md` files for more inf
     -   Includes plotting functions to aid in displaying results
     
     **Installation: `devtools::install_github("lmullany/JHUAPL-SLPHospEns",subdir="covid19hosp")`**
+
+This work was supported by the US Department of Health and Human Services Office of the Assistant Secretary of Preparedness and Response

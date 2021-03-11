@@ -23,5 +23,9 @@ The main purpose of the package is to estimate hospitalization ensemble forecast
   - For each of these regression models, 1000 random draws from the uniform distribution are then applied, to simulate the original model's forecast distribution for that date/location.  
   - The distributions are summed together (i.e. linearly pooled) across the modeling groups to produce a (multi-modal) joint distribution for each date/location, from which we can estimate the ensemble quantiles.
 
-
 - A "Simulated Linear Pooling" ensemble is similarly estimated, as above, without the pre-smoothing step
+
+- The ensemble estimation is done via calls to a separate package, `psSLP`, also available within this repo.
+
+
+This work was supported by the US Department of Health and Human Services Office of the Assistant Secretary of Preparedness and Response
