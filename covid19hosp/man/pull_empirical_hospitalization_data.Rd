@@ -8,11 +8,13 @@ pull_empirical_hospitalization_data(source = c("state"))
 }
 \arguments{
 \item{source}{string either "state" or "facility"; used internally by the function to pull the fixed
-identifier for the dataset. If "facility", the dataset at
-https://healthdata.gov/dataset/covid-19-reported-patient-impact-and-hospital-capacity-facility will be pulled.
-If "state" (default), the dataset at
-https://healthdata.gov/dataset/covid-19-reported-patient-impact-and-hospital-capacity-state-timeseries will
-be returned. Only state is currently implemented.}
+identifier for the dataset.
+\itemize{
+\item If "facility": not yet implemented
+\item If "state" (default), the dataset at
+"https://healthdata.gov/api/views/g62h-syeh/rows.csv?accessType=DOWNLOAD&api_foundry=true"
+will be returned
+}}
 }
 \value{
 data.table of hospitalization data

@@ -5,11 +5,11 @@
 #' function takes a url, reads in the timeseries data, and converts it
 #' to long format,combining pediatric and adult, and creating a US version
 #' @param source string either "state" or "facility"; used internally by the function to pull the fixed
-#' identifier for the dataset. If "facility", the dataset at
-#' https://healthdata.gov/dataset/covid-19-reported-patient-impact-and-hospital-capacity-facility will be pulled.
-#' If "state" (default), the dataset at
-#' https://healthdata.gov/dataset/covid-19-reported-patient-impact-and-hospital-capacity-state-timeseries will
-#' be returned. Only state is currently implemented.
+#' identifier for the dataset.
+#'  - If "facility": not yet implemented
+#'  - If "state" (default), the dataset at
+#'  "https://healthdata.gov/api/views/g62h-syeh/rows.csv?accessType=DOWNLOAD&api_foundry=true"
+#'  will be returned
 #' @return data.table of hospitalization data
 #' @export
 #' @examples
@@ -20,11 +20,14 @@
 pull_empirical_hospitalization_data <- function(source=c("state")) {
 
   source = match.arg(source)
-  url = construct_hosp_url(source)
+  state_url = "https://healthdata.gov/api/views/g62h-syeh/rows.csv?accessType=DOWNLOAD&api_foundry=true"
 
-  if(source=="state") raw <- pull_and_process_state(url)
+
+  if(source=="state") raw <- pull_and_process_state(state_url)
   if(source=="facility") raw <- pull_and_process_facility(url)
 
+  #ensure that date is data variable not character)
+  raw[,date:=as.IDate(date)]
 
   #keep columns of interest, and set names
   empir <- raw[,.(state,date,confirmed_covid_24h,suspected_covid_24h,total_covid_24h)]
@@ -47,7 +50,7 @@ pull_empirical_hospitalization_data <- function(source=c("state")) {
 
   empir[,indicator:=factor(indicator,
                           levels=empirical_outcome_names,
-                          labels=names(empirical_outcome_names))][]
+                          labels=names(empirical_outcome_names))]
 
   #Add the internal location dataset
   empir <- location_dataset[,.(state, state_name)][empir,on="state"]
@@ -98,7 +101,12 @@ construct_hosp_url <- function(source = c("state","facility")) {
 #' @keywords internal
 #'
 pull_and_process_state <- function(url) {
-  raw <- data.table::fread(url)[,.SD,.SDcols = patterns("state|date|^previous.+(confirmed|suspected)$|inpatient_beds|inpatient_beds_used")]
+  raw = try(data.table::fread(url),silent=T)
+  if(class(raw) == "try-error") {
+    cat("\ncurl download error / trying (slower) read.csv\n")
+    raw = data.table::setDT(read.csv(url))
+  }
+  raw <- raw[,.SD,.SDcols = patterns("state|date|^previous.+(confirmed|suspected)$|inpatient_beds|inpatient_beds_used")]
   raw[,confirmed_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_confirmed","previous_day_admission_pediatric_covid_confirmed")]
   raw[,suspected_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_suspected","previous_day_admission_pediatric_covid_suspected")]
   raw[,total_covid_24h:=rowSums(.SD,na.rm=T),.SDcols = c("confirmed_covid_24h","suspected_covid_24h")]
