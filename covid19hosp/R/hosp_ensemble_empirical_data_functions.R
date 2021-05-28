@@ -102,7 +102,7 @@ construct_hosp_url <- function(source = c("state","facility")) {
 #'
 pull_and_process_state <- function(url) {
   raw = try(data.table::fread(url),silent=T)
-  if(class(raw) == "try-error") {
+  if(class(raw)[1] == "try-error") {
     cat("\ncurl download error / trying (slower) read.csv\n")
     raw = data.table::setDT(read.csv(url))
   }
