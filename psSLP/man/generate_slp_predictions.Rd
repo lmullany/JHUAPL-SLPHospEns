@@ -13,7 +13,7 @@ generate_slp_predictions(
   parallel = c("auto", "on", "off"),
   threads = NULL,
   verbose = T,
-  gam_model_configuration = list(family = "gaussian")
+  gam_model_configuration = list(family = "gaussian", k = 10)
 )
 }
 \arguments{
@@ -35,11 +35,12 @@ make for each quantile function set}
 
 \item{verbose}{(default = TRUE) a boolean indicator to show verbose status updates during calculation}
 
-\item{gam_model_configuration}{(default=NULL); not yet implemented}
-
 \item{parallel:}{string value either "auto","on","off". By default, the function will run in parallel
 using half the available threads if the number of gam models to estimates exceeds 1000 (this is "auto")
 mode. Setting this to "on" ("off") will force parallel processing on ("off") regardless of gam models}
+
+\item{gam_model_configuration;}{provide a list of additional parameters to the gam model. Currently, the
+default list is \code{list(family="gaussian", k=10)} to control the model distribution and the number of knots}
 }
 \value{
 Returns a data table of predictions (size=\code{draw_size}) for each grouping variable defined via \code{byvars}

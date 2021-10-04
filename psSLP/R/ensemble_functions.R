@@ -21,7 +21,8 @@
 #' mode. Setting this to "on" ("off") will force parallel processing on ("off") regardless of gam models
 #' @param threads default NULL, set integer number of threads to use for parallel processing
 #' @param verbose (default = TRUE) a boolean indicator to show verbose status updates during calculation
-#' @param gam_model_configuration (default=NULL); not yet implemented
+#' @param gam_model_configuration; provide a list of additional parameters to the gam model. Currently, the
+#' default list is `list(family="gaussian", k=10)` to control the model distribution and the number of knots
 #' @return Returns a data table of predictions (size=`draw_size`) for each grouping variable defined via `byvars`
 #' @import data.table
 #' @importFrom foreach %dopar%
@@ -37,7 +38,9 @@ generate_slp_predictions <- function(x,
                                   parallel = c("auto","on","off"),
                                   threads = NULL,
                                   verbose=T,
-                                  gam_model_configuration=list(family="gaussian")) {
+                                  gam_model_configuration=list(
+                                    family="gaussian",
+                                    k=10)) {
 
   parallel = match.arg(parallel)
 
@@ -56,7 +59,8 @@ generate_slp_predictions <- function(x,
   #if byvars is null, this should be very quick (one model only)
   if(is.null(byvars)) {
     gam_model <- suppressWarnings(
-      mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=input_df, model=F, family=gam_model_configuration$family)
+      mgcv::gam(get(qp_var)~s(quantile,bs="cs",
+                              k=gam_model_configuration$k),data=input_df, model=F, family=gam_model_configuration$family)
     )
     predictions = sim_model_output(gam_model,numpredictions = draw_size)
     if(gam_model_configuration$family == "poisson") {
@@ -92,7 +96,7 @@ generate_slp_predictions <- function(x,
     }
     result <- foreach::foreach(i=split(input_df,by=byvars),.combine = rbind, .verbose=F,.packages="data.table",.inorder = F) %par_type% {
         gam_model <- suppressWarnings(
-          mgcv::gam(get(qp_var)~s(quantile,bs="cs"),data=i, model=F, family=gam_model_configuration$family)
+          mgcv::gam(get(qp_var)~s(quantile,bs="cs",k=gam_model_configuration$k),data=i, model=F, family=gam_model_configuration$family)
         )
         predictions = sim_model_output(gam_model,draw_size)
         if(gam_model_configuration$family == "poisson") {
