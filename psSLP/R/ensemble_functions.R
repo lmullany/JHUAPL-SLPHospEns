@@ -44,6 +44,12 @@ generate_slp_predictions <- function(x,
 
   parallel = match.arg(parallel)
 
+  # check that if a gam_model_configuration list has been provided, then
+  # any elements that are null get filled with default.
+
+  if(is.null(gam_model_configuration[["family"]])) gam_model_configuration[["family"]] <- "gaussian"
+  if(is.null(gam_model_configuration[["k"]])) gam_model_configuration[["k"]] <- 10
+
   # Check Inputs
   check_inputs(input_list = list("qp_var" = qp_var,"p_var" = p_var,"byvars" = byvars),x = x)
 
