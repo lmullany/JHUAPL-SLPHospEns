@@ -13,6 +13,7 @@ generate_slp_predictions(
   parallel = c("auto", "on", "off"),
   threads = NULL,
   verbose = T,
+  return_models_only = F,
   gam_model_configuration = list(family = "gaussian", k = 10)
 )
 }
@@ -34,6 +35,8 @@ make for each quantile function set}
 \item{threads}{default NULL, set integer number of threads to use for parallel processing}
 
 \item{verbose}{(default = TRUE) a boolean indicator to show verbose status updates during calculation}
+
+\item{return_models_only}{default FALSE; set to TRUE to return only the models (not the predictions)}
 
 \item{parallel:}{string value either "auto","on","off". By default, the function will run in parallel
 using half the available threads if the number of gam models to estimates exceeds 1000 (this is "auto")

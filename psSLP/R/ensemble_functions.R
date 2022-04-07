@@ -20,6 +20,7 @@
 #' using half the available threads if the number of gam models to estimates exceeds 1000 (this is "auto")
 #' mode. Setting this to "on" ("off") will force parallel processing on ("off") regardless of gam models
 #' @param threads default NULL, set integer number of threads to use for parallel processing
+#' @param return_models_only default FALSE; set to TRUE to return only the models (not the predictions)
 #' @param verbose (default = TRUE) a boolean indicator to show verbose status updates during calculation
 #' @param gam_model_configuration; provide a list of additional parameters to the gam model. Currently, the
 #' default list is `list(family="gaussian", k=10)` to control the model distribution and the number of knots
@@ -38,6 +39,7 @@ generate_slp_predictions <- function(x,
                                   parallel = c("auto","on","off"),
                                   threads = NULL,
                                   verbose=T,
+                                  return_models_only=F,
                                   gam_model_configuration=list(
                                     family="gaussian",
                                     k=10)) {
@@ -68,13 +70,17 @@ generate_slp_predictions <- function(x,
       mgcv::gam(get(qp_var)~s(quantile,bs="cs",
                               k=gam_model_configuration$k),data=input_df, model=F, family=gam_model_configuration$family)
     )
-    predictions = sim_model_output(gam_model,numpredictions = draw_size)
-    if(gam_model_configuration$family == "poisson") {
-      print("poisson_predictions!")
-      predictions = exp(predictions)
-    }
+    if(return_models_only) {
+      return(gam_model)
+    } else {
+      predictions = sim_model_output(gam_model,numpredictions = draw_size)
+      if(gam_model_configuration$family == "poisson") {
+        predictions = exp(predictions)
+      }
 
-    return(data.table::data.table("predictions"=predictions))
+      return(data.table::data.table("predictions"=predictions))
+
+    }
   }
 
   nmods <- data.table::uniqueN(input_df,by=byvars)
@@ -104,12 +110,17 @@ generate_slp_predictions <- function(x,
         gam_model <- suppressWarnings(
           mgcv::gam(get(qp_var)~s(quantile,bs="cs",k=gam_model_configuration$k),data=i, model=F, family=gam_model_configuration$family)
         )
-        predictions = sim_model_output(gam_model,draw_size)
-        if(gam_model_configuration$family == "poisson") {
-          predictions = exp(predictions)
+        if(return_models_only) {
+          res = data.table::data.table(model=list(gam_model))
+        } else {
+          predictions = sim_model_output(gam_model,draw_size)
+          if(gam_model_configuration$family == "poisson") {
+            predictions = exp(predictions)
+          }
+          res = data.table::data.table(predictions=predictions)
         }
+
         keyv <- lapply(byvars,function(x) unique(i[[x]]))
-        res = data.table::data.table(predictions=predictions)
         for(kv in seq(length(keyv))) data.table::set(x=res,j = byvars[kv],value = keyv[kv])
         res[]
     }
