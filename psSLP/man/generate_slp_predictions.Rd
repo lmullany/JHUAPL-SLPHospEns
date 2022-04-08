@@ -13,7 +13,9 @@ generate_slp_predictions(
   parallel = c("auto", "on", "off"),
   threads = NULL,
   verbose = T,
-  gam_model_configuration = list(family = "gaussian", k = 10)
+  model_configuration = list(type = "gam", gam_con = list(family = "gaussian", k = 10)),
+  unif_range = c(0, 1),
+  fixed_unif = F
 )
 }
 \arguments{
@@ -39,8 +41,18 @@ make for each quantile function set}
 using half the available threads if the number of gam models to estimates exceeds 1000 (this is "auto")
 mode. Setting this to "on" ("off") will force parallel processing on ("off") regardless of gam models}
 
-\item{gam_model_configuration;}{provide a list of additional parameters to the gam model. Currently, the
-default list is \code{list(family="gaussian", k=10)} to control the model distribution and the number of knots}
+\item{model_configuration;}{provide a nested list of additional parameters to the model. Currently, the
+default list has \code{type="gam"}, and \code{gam_con = list(family="gaussian", k=10)}. However, to run an linear
+interpolation, change the type to \code{lin_interp}.}
+
+\item{unif_range:}{numeric vector of length 2 restricting the range of the random uniform variates. The default
+is \code{c(0,1)}, but if linear interpolotion method is being used, it would be wise to change the this to \code{c(min,max)},
+where \code{min} is the minimum available value in \code{p_var} (i.e. the lowest quantile), and \code{max} is the maximum
+value in \code{p_var}.}
+
+\item{fixed_unif:}{default FALSE, if set to TRUE this will ensure that the same set of uniform variates will be
+drawn for each run of the estimation function; rather than pulling \code{runif(draw_size, unif_range[0], unif_range[1])},
+this option will pull  \code{seq(unif_range[0], unif_range[1], length.out=draw_size)}}
 }
 \value{
 Returns a data table of predictions (size=\code{draw_size}) for each grouping variable defined via \code{byvars}
