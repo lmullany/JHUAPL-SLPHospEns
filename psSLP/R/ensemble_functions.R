@@ -220,6 +220,7 @@ generate_slp_predictions <- function(x,
 #' a set of predictions
 #' @param quantiles a numeric vectors of values between 0 and 1 exclusive; these are the quantile levels to
 #' estimate. The default set contains 23 levels (`c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99)`)
+#' @param trim default NULL, provide a trim_level to truncate the multimodal distribution prior to ensembling
 #' @return Returns a data table of the simulated linear pooling ensemble
 #' @export
 #' @examples
@@ -229,13 +230,20 @@ generate_slp_predictions <- function(x,
 generate_slp_ensemble <- function(slp_predictions,
                                   qp_var = "predictions",
                                   byvars = NULL,
-                                  quantiles = c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99)) {
+                                  quantiles = c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99),
+                                  trim = NULL) {
 
   # Check Inputs
   check_inputs(input_list = list("predictions" = "predictions","byvars" = byvars),x = slp_predictions)
 
+  # If there is trim level provided, we need to truncate by that trim level
+  if(!is.null(trim)) {
+    ensemble <- slp_predictions[, .(predictions = trim_vector(predictions, trim_level=trim, tag=F)), by=byvars][
+      ,.("value" = quantile(predictions,probs = quantiles)), by=byvars][,quantile:=quantiles, by=byvars]
+  } else {
+    ensemble <- slp_predictions[,.("value" = quantile(predictions,probs = quantiles)), by=byvars][,quantile:=quantiles, by=byvars]
+  }
 
-  ensemble <- slp_predictions[,.("value" = quantile(predictions,probs = quantiles)), by=byvars][,quantile:=quantiles, by=byvars]
   setnames(ensemble, old="value",new=qp_var)
 
   return(ensemble[,.SD, .SDcols=c(byvars,"quantile",qp_var)])
@@ -373,6 +381,28 @@ get_parallel_status <- function(nmods,parallel,clusters) {
   if(is.null(clusters) || is.na(clusters)) parallel_config[["threads"]] <- max_threads/2
   else parallel_config[["threads"]] <- min(max_threads,clusters,na.rm=T)
   return(parallel_config)
+}
+
+#' Trim a vector by a given level
+#'
+#' Function takes a vector `x` and either returns a logical vector of length
+#' equal to length(x), indicating indices of x that would be kept given
+#' a trim level (see below), or returns a trimmed version of x itself. The
+#' trim level is provided between 0 and 1, and trim_level/2 and 1-trim_level/2
+#' indicate the quantile values at which x will be trimmed (or tagged)
+#' @param x the vector of values
+#' @param trim_level numeric between 0 and 1, default=0.05
+#' @param tag logical default F, set to T to return a logical vector rather than
+#' the trimmed version of x
+#' @export
+#' @examples
+#' trim_vector(x,trim_level=0.1)
+#' trim_vector(my_values, tag=T)
+trim_vector <- function(x,trim_level=0.05,tag=F) {
+  tr_p = quantile(x,probs=c(trim_level/2, 1-trim_level/2))
+  keep = data.table::between(x,tr_p[1],tr_p[2])
+  if(tag) return(keep)
+  else return(x[keep])
 }
 
 
