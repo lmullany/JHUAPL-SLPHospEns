@@ -21,8 +21,16 @@
 #' mode. Setting this to "on" ("off") will force parallel processing on ("off") regardless of gam models
 #' @param threads default NULL, set integer number of threads to use for parallel processing
 #' @param verbose (default = TRUE) a boolean indicator to show verbose status updates during calculation
-#' @param gam_model_configuration; provide a list of additional parameters to the gam model. Currently, the
-#' default list is `list(family="gaussian", k=10)` to control the model distribution and the number of knots
+#' @param model_configuration; provide a nested list of additional parameters to the model. Currently, the
+#' default list has `type="gam"`, and `gam_con = list(family="gaussian", k=10)`. However, to run an linear
+#' interpolation, change the type to `lin_interp`.
+#' @param unif_range: numeric vector of length 2 restricting the range of the random uniform variates. The default
+#' is `c(0,1)`, but if linear interpolotion method is being used, it would be wise to change the this to `c(min,max)`,
+#' where `min` is the minimum available value in `p_var` (i.e. the lowest quantile), and `max` is the maximum
+#' value in `p_var`.
+#' @param fixed_unif: default FALSE, if set to TRUE this will ensure that the same set of uniform variates will be
+#' drawn for each run of the estimation function; rather than pulling `runif(draw_size, unif_range[0], unif_range[1])`,
+#' this option will pull  `seq(unif_range[0], unif_range[1], length.out=draw_size)`
 #' @return Returns a data table of predictions (size=`draw_size`) for each grouping variable defined via `byvars`
 #' @import data.table
 #' @importFrom foreach %dopar%
@@ -38,39 +46,94 @@ generate_slp_predictions <- function(x,
                                   parallel = c("auto","on","off"),
                                   threads = NULL,
                                   verbose=T,
-                                  gam_model_configuration=list(
-                                    family="gaussian",
-                                    k=10)) {
+                                  model_configuration=list(
+                                    type="gam",
+                                    gam_con = list(
+                                      family="gaussian",
+                                      k=10)
+                                    ),
+                                  unif_range = c(0,1),
+                                  fixed_unif = F
+                                  )
+ {
 
   parallel = match.arg(parallel)
 
   # check that if a gam_model_configuration list has been provided, then
   # any elements that are null get filled with default.
 
+  # if no type has been provided, set to gam
+  if(is.null(model_configuration[["type"]])) model_configuration[["type"]]<-"gam"
+
+  # set the gam_model configu to the model_config[[gam_con]]
+  gam_model_configuration <- model_configuration[["gam_con"]]
   if(is.null(gam_model_configuration[["family"]])) gam_model_configuration[["family"]] <- "gaussian"
   if(is.null(gam_model_configuration[["k"]])) gam_model_configuration[["k"]] <- 10
 
   # Check Inputs
   check_inputs(input_list = list("qp_var" = qp_var,"p_var" = p_var,"byvars" = byvars),x = x)
 
-  # A function to generate predictions for each model
-  sim_model_output <- function(gam_model, numpredictions) {
-    phat <- predict(gam_model,newdata=data.frame(quantile=runif(n=numpredictions)))
+  # A function to generate predictions for gam model
+  gam_sim_model_output <- function(model, numpredictions,unif_range=c(0.01,0.99), fixed_unif=F) {
+
+    if(fixed_unif) unif_variates = seq(unif_range[1],unif_range[2], length.out = numpredictions)
+    else unif_variates = runif(n=numpredictions,min = unif_range[1], max=unif_range[2])
+
+    phat <- predict(model,newdata=data.frame(quantile=unif_variates))
     return(as.vector(phat))
   }
+
+  # A function to generate predictions for interpolation model
+  interp_sim_model_output <- function(model, numpredictions, unif_range=c(0.01,0.99), fixed_unif=F) {
+
+    if(fixed_unif) unif_variates = seq(unif_range[1],unif_range[2], length.out = numpredictions)
+    else unif_variates = runif(n=numpredictions,min = unif_range[1], max=unif_range[2])
+
+    phat <- model(unif_variates)
+    return(as.vector(phat))
+  }
+
+  sim_model_output <- list(
+    "gam" = gam_sim_model_output,
+    "lin_interp" = interp_sim_model_output
+  )
+
 
   input_df = data.table::setDT(data.table::copy(x))
   input_df[,"quantile":=get(p_var)]
 
   #if byvars is null, this should be very quick (one model only)
   if(is.null(byvars)) {
-    gam_model <- suppressWarnings(
-      mgcv::gam(get(qp_var)~s(quantile,bs="cs",
-                              k=gam_model_configuration$k),data=input_df, model=F, family=gam_model_configuration$family)
-    )
-    predictions = sim_model_output(gam_model,numpredictions = draw_size)
-    if(gam_model_configuration$family == "poisson") {
-      print("poisson_predictions!")
+    if(model_configuration[["type"]] == "gam") {
+
+      est_model <- suppressWarnings(
+        mgcv::gam(
+          get(qp_var)~s(quantile,bs="cs",k=gam_model_configuration$k),
+          data=input_df,
+          model=F,
+          family=gam_model_configuration$family)
+      )
+
+    }
+
+    if(model_configuration[["type"]] == "lin_interp") {
+
+      est_model <- suppressWarnings(
+        approxfun(x=input_df$quantile,
+                  y=input_df[[qp_var]],
+                  method = "linear",
+                  rule=1)
+      )
+
+    }
+
+    predictions = sim_model_output[[model_configuration[["type"]]]](
+      model = est_model,
+      numpredictions = draw_size,
+      unif_range = unif_range,
+      fixed_unif=fixed_unif)
+
+    if(model_configuration[["type"]] == "gam" & gam_model_configuration$family == "poisson") {
       predictions = exp(predictions)
     }
 
@@ -83,9 +146,9 @@ generate_slp_predictions <- function(x,
 
   if(verbose) {
     if(parallel_config[["parallel"]]){
-      cat("Running",nmods,"gam models in parallel.. will take some time\n")
+      cat("Running",nmods,"models in parallel.. will take some time\n")
     } else {
-      cat("Running",nmods,"gam models.. will take some time\n")
+      cat("Running",nmods,"models.. will take some time\n")
     }
 
     if(!parallel_config[["parallel"]] & nmods>1000) cat("Not running in parallel mode, but more than 1000 models to be run.. consider setting parallel to auto/on\n")
@@ -100,18 +163,39 @@ generate_slp_predictions <- function(x,
     } else {
       `%par_type%` <- `%do%`
     }
+
     result <- foreach::foreach(i=split(input_df,by=byvars),.combine = rbind, .verbose=F,.packages="data.table",.inorder = F) %par_type% {
-        gam_model <- suppressWarnings(
+
+      if(model_configuration[["type"]] == "gam") {
+        est_model <- suppressWarnings(
           mgcv::gam(get(qp_var)~s(quantile,bs="cs",k=gam_model_configuration$k),data=i, model=F, family=gam_model_configuration$family)
         )
-        predictions = sim_model_output(gam_model,draw_size)
-        if(gam_model_configuration$family == "poisson") {
+      }
+
+      if(model_configuration[["type"]] == "lin_interp") {
+        est_model <- suppressWarnings(
+          approxfun(x=i$quantile,
+                    y=i[[qp_var]],
+                    method = "linear",
+                    rule=1)
+        )
+      }
+      predictions = sim_model_output[[model_configuration[["type"]]]](
+        model = est_model,
+        numpredictions = draw_size,
+        unif_range = unif_range,
+        fixed_unif = fixed_unif
+      )
+
+      if(model_configuration[["type"]] == "gam" & gam_model_configuration$family == "poisson") {
           predictions = exp(predictions)
-        }
-        keyv <- lapply(byvars,function(x) unique(i[[x]]))
-        res = data.table::data.table(predictions=predictions)
-        for(kv in seq(length(keyv))) data.table::set(x=res,j = byvars[kv],value = keyv[kv])
-        res[]
+      }
+
+      keyv <- lapply(byvars,function(x) unique(i[[x]]))
+      res = data.table::data.table(predictions=predictions)
+      for(kv in seq(length(keyv))) data.table::set(x=res,j = byvars[kv],value = keyv[kv])
+      res[]
+
     }
     if(parallel_config[["parallel"]]) {
       parallel::stopCluster(clusters)
