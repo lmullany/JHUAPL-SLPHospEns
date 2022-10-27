@@ -4,6 +4,7 @@
 #' csv formatted data of hospitalizations associated with covid. This
 #' function takes a url, reads in the timeseries data, and converts it
 #' to long format,combining pediatric and adult, and creating a US version
+#' @param raw string path to hosp file (avoid download)
 #' @param source string either "state" or "facility"; used internally by the function to pull the fixed
 #' identifier for the dataset.
 #'  - If "facility": not yet implemented
@@ -17,14 +18,18 @@
 #' pull_empirical_hospitalization_data(url)
 #' pull_empirical_hospitalization_data(url=hosp_url)
 
-pull_empirical_hospitalization_data <- function(source=c("state")) {
+pull_empirical_hospitalization_data <- function(raw = NULL,source=c("state")) {
 
   source = match.arg(source)
   state_url = "https://healthdata.gov/api/views/g62h-syeh/rows.csv?accessType=DOWNLOAD&api_foundry=true"
 
+  if(is.null(raw)) {
 
-  if(source=="state") raw <- pull_and_process_state(state_url)
-  if(source=="facility") raw <- pull_and_process_facility(url)
+    if(source=="state") raw <- pull_and_process_state(state_url)
+    if(source=="facility") raw <- pull_and_process_facility(url)
+  } else {
+    raw = pull_and_process_state(raw)
+  }
 
   #ensure that date is data variable not character)
   raw[,date:=as.IDate(date)]
