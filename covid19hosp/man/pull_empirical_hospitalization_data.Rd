@@ -7,7 +7,7 @@
 pull_empirical_hospitalization_data(raw = NULL, source = c("state"))
 }
 \arguments{
-\item{raw}{string path to hosp file (avoid download)}
+\item{raw}{string path to hosp file (avoid download) or df of raw file}
 
 \item{source}{string either "state" or "facility"; used internally by the function to pull the fixed
 identifier for the dataset.

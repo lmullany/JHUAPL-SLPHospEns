@@ -4,7 +4,7 @@
 #' csv formatted data of hospitalizations associated with covid. This
 #' function takes a url, reads in the timeseries data, and converts it
 #' to long format,combining pediatric and adult, and creating a US version
-#' @param raw string path to hosp file (avoid download)
+#' @param raw string path to hosp file (avoid download) or df of raw file
 #' @param source string either "state" or "facility"; used internally by the function to pull the fixed
 #' identifier for the dataset.
 #'  - If "facility": not yet implemented
@@ -27,9 +27,17 @@ pull_empirical_hospitalization_data <- function(raw = NULL,source=c("state")) {
 
     if(source=="state") raw <- pull_and_process_state(state_url)
     if(source=="facility") raw <- pull_and_process_facility(url)
-  } else {
-    raw = pull_and_process_state(raw)
   }
+  else {
+    if(!"data.frame" %in% class(raw))
+      raw = fread(raw)
+  }
+  # otherwise we assume raw is a datatable
+
+  raw <- raw[,.SD,.SDcols = patterns("state|date|^previous.+(confirmed|suspected)$|inpatient_beds|inpatient_beds_used")]
+  raw[,confirmed_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_confirmed","previous_day_admission_pediatric_covid_confirmed")]
+  raw[,suspected_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_suspected","previous_day_admission_pediatric_covid_suspected")]
+  raw[,total_covid_24h:=rowSums(.SD,na.rm=T),.SDcols = c("confirmed_covid_24h","suspected_covid_24h")]
 
   #ensure that date is data variable not character)
   raw[,date:=as.IDate(date)]
@@ -111,10 +119,6 @@ pull_and_process_state <- function(url) {
     cat("\ncurl download error / trying (slower) read.csv\n")
     raw = data.table::setDT(read.csv(url))
   }
-  raw <- raw[,.SD,.SDcols = patterns("state|date|^previous.+(confirmed|suspected)$|inpatient_beds|inpatient_beds_used")]
-  raw[,confirmed_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_confirmed","previous_day_admission_pediatric_covid_confirmed")]
-  raw[,suspected_covid_24h := rowSums(.SD,na.rm=T), .SDcols = c("previous_day_admission_adult_covid_suspected","previous_day_admission_pediatric_covid_suspected")]
-  raw[,total_covid_24h:=rowSums(.SD,na.rm=T),.SDcols = c("confirmed_covid_24h","suspected_covid_24h")]
   return(raw)
 }
 
