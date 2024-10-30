@@ -9,7 +9,8 @@ generate_slp_ensemble(
   qp_var = "predictions",
   byvars = NULL,
   quantiles = c(0.01, 0.025, seq(0.05, 0.95, 0.05), 0.975, 0.99),
-  trim = NULL
+  trim = NULL,
+  weights = NULL
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ a set of predictions}
 estimate. The default set contains 23 levels (\code{c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99)})}
 
 \item{trim}{default NULL, provide a trim_level to truncate the multimodal distribution prior to ensembling}
+
+\item{weights}{string name of the weight variable if included}
 }
 \value{
 Returns a data table of the simulated linear pooling ensemble

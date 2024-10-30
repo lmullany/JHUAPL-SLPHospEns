@@ -120,7 +120,11 @@ simulated_1 = generate_slp_predictions(
   x = forecast_1,
   qp_var = "qp",
   p_var = "p",
-  gam_model_configuration = list(family="poisson"))
+  model_configuration = list("gam_con" = list(family="poisson"))
+)
+
+                             
+  
 
 # plot a histogram of these
 ggplot(simulated_1,aes(x=predictions,stat="identity")) + 
@@ -219,7 +223,7 @@ sim_distributions <- generate_slp_predictions(
   x = multiple_models,
   qp_var="outcomes",
   p_var="quantile",
-  gam_model_configuration = list(family="poisson"), 
+  model_configuration = list(gam_con = list(family="poisson")), 
   byvar="model"
 )
 
