@@ -221,6 +221,7 @@ generate_slp_predictions <- function(x,
 #' @param quantiles a numeric vectors of values between 0 and 1 exclusive; these are the quantile levels to
 #' estimate. The default set contains 23 levels (`c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99)`)
 #' @param trim default NULL, provide a trim_level to truncate the multimodal distribution prior to ensembling
+#' @param weights string name of the weight variable if included
 #' @return Returns a data table of the simulated linear pooling ensemble
 #' @export
 #' @examples
@@ -231,17 +232,22 @@ generate_slp_ensemble <- function(slp_predictions,
                                   qp_var = "predictions",
                                   byvars = NULL,
                                   quantiles = c(0.01,0.025,seq(0.05,0.95,0.05),0.975,0.99),
-                                  trim = NULL) {
+                                  trim = NULL,
+                                  weights=NULL) {
 
   # Check Inputs
-  check_inputs(input_list = list("predictions" = "predictions","byvars" = byvars),x = slp_predictions)
+  check_inputs(input_list = list("predictions" = qp_var,"byvars" = byvars),x = slp_predictions)
+
+  if(is.null(weights)) {
+    slp_predictions[, weights:=1]
+  }
 
   # If there is trim level provided, we need to truncate by that trim level
   if(!is.null(trim)) {
-    ensemble <- slp_predictions[, .(predictions = trim_vector(predictions, trim_level=trim, tag=F)), by=byvars][
-      ,.("value" = quantile(predictions,probs = quantiles)), by=byvars][,quantile:=quantiles, by=byvars]
+    trimmed_predictions = slp_predictions[, trim_tag:=trim_vector(predictions, trim_level=trim, tag=T), by=byvars, env=list(predictions=qp_var)]
+    ensemble <- trimmed_predictions[trim_tag==T, .("value" = weighted.quantile(predictions,probs = quantiles, weights=weights)), by=byvars, env=list(predictions=qp_var)][,quantile:=quantiles, by=byvars]
   } else {
-    ensemble <- slp_predictions[,.("value" = quantile(predictions,probs = quantiles)), by=byvars][,quantile:=quantiles, by=byvars]
+    ensemble <- slp_predictions[,.("value" = weighted.quantile(predictions,probs = quantiles, weights=weights)), by=byvars, env=list(predictions=qp_var)][,quantile:=quantiles, by=byvars]
   }
 
   setnames(ensemble, old="value",new=qp_var)
